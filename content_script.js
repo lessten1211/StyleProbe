@@ -887,6 +887,4 @@
       showSpacingInfo(state.selectedElement, state.hoveredElement);
     }
   }, true);
-
-  console.log('StyleProbe content script loaded');
 })();
