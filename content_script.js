@@ -660,6 +660,11 @@
     
     document.addEventListener('mousemove', handleMouseMove, true);
     document.addEventListener('click', handleClick, true);
+
+    // 激活移动端长按防御（禁用上下文菜单 / 文本选择 / 图片保存）
+    if (window.__TouchDefense__) {
+      window.__TouchDefense__.activate();
+    }
   }
 
   // === 停止选择模式 ===
@@ -669,6 +674,11 @@
     
     document.removeEventListener('mousemove', handleMouseMove, true);
     document.removeEventListener('click', handleClick, true);
+
+    // 停用移动端长按防御（还原页面原始行为）
+    if (window.__TouchDefense__) {
+      window.__TouchDefense__.deactivate();
+    }
     
     // 隐藏蓝色悬停框
     hideOverlay(state.highlightOverlay);

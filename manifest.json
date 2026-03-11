@@ -29,7 +29,10 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content_script.js"],
+      "js": [
+        "features/mobile-adapter/touch-defense.js",
+        "content_script.js"
+      ],
       "run_at": "document_idle",
       "all_frames": false
     }
