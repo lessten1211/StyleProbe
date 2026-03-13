@@ -291,7 +291,6 @@
     document.body.classList.add('css-inspector-active');
     injectDefenseStyles();
     attachDefenseListeners();
-    console.log('[TouchDefense] ✅ 移动端防御已激活');
   }
 
   /**
@@ -302,7 +301,6 @@
     document.body.classList.remove('css-inspector-active');
     removeDefenseStyles();
     detachDefenseListeners();
-    console.log('[TouchDefense] ⛔ 移动端防御已停用');
   }
 
   /**
