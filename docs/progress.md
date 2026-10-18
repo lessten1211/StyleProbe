@@ -21,3 +21,11 @@
 - Extension supports explicit pairing/disconnect, reconnect alarms, heartbeat and active-tab viewport/element capture.
 - Verified 2 Node integration tests using the actual MCP SDK client and WebSocket protocol; syntax checks pass.
 - Browser-side pairing UI and real loaded-extension calls are verified in subsequent stages.
+
+## Stage 3 — five workflows
+
+- Rebuilt the side panel around task capture, design assertions, diagnosis/measurement, static extraction and action verification.
+- Added five MCP tools: task, assert, diagnose, extract and act (15 tools total).
+- Added inert standalone HTML export, source/asset evidence, screenshot display, JSON copy/download, local pairing UI and reversible style trials.
+- Verified 10 real Chrome browser tests including all five workflows, exported component rendering, failed acceptance criteria, asynchronous action success/timeouts and invalid-input-before-mutation; both MCP tests and syntax checks pass.
+- The upcoming final stage covers the actual packaged extension, panel interaction, bridge and screenshots together.

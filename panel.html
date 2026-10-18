@@ -1,197 +1,23 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StyleProbe</title>
-  <link rel="stylesheet" href="panel.css">
-</head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>StyleProbe · Agent Probe</title><link rel="stylesheet" href="panel.css"></head>
 <body>
-  <div class="panel-container">
-    <!-- Fixed Header -->
-    <header class="panel-header">
-      <h1 class="panel-title">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M10 2C5.58 2 2 5.58 2 10s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
-          <circle cx="10" cy="10" r="3"/>
-        </svg>
-        StyleProbe
-      </h1>
-      <button id="pickButton" class="btn btn-primary" title="选择页面元素">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M3 2l10 6-4 1-1 4-5-11z"/>
-        </svg>
-        Start Picking
-      </button>
-    </header>
-
-    <!-- Scrollable Content -->
-    <div class="panel-content">
-      <!-- Empty State -->
-      <div id="emptyState" class="empty-state">
-        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="32" cy="32" r="20"/>
-          <path d="M32 22v20M22 32h20"/>
-        </svg>
-        <p>Click "Start Picking" to select an element</p>
-      </div>
-
-      <!-- Element Info Card -->
-      <div id="elementCard" class="info-card hidden">
-        <div class="card-header">
-          <div class="element-tag">
-            <span id="elementTagLabel" class="tag-label">Div</span>
-            <span id="elementTagName" class="tag-name">div</span>
-          </div>
-        </div>
-        
-        <div class="card-content">
-          <div class="property-row" id="elementIdRow">
-            <span class="prop-label">ID</span>
-            <span id="elementId" class="prop-value"></span>
-          </div>
-          <div class="property-row" id="elementClassRow">
-            <span class="prop-label">Classes</span>
-            <span id="elementClasses" class="prop-value"></span>
-          </div>
-          <div class="property-row selector-row">
-            <span class="prop-label">Selector</span>
-            <code id="elementSelector" class="selector-code"></code>
-            <button id="copySelector" class="icon-btn" title="复制选择器">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M4 2h8a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2z"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Box Model Card -->
-      <div id="boxModelCard" class="info-card hidden">
-        <div class="card-header">
-          <div class="card-title">Box Model</div>
-        </div>
-        <div class="card-content">
-          <div class="box-model">
-            <div class="box-layer margin-layer">
-              <span class="box-label">margin</span>
-              <span id="marginTop" class="box-value top"></span>
-              <span id="marginRight" class="box-value right"></span>
-              <span id="marginBottom" class="box-value bottom"></span>
-              <span id="marginLeft" class="box-value left"></span>
-              <div class="box-layer border-layer">
-                <span class="box-label">border</span>
-                <span id="borderTop" class="box-value top"></span>
-                <span id="borderRight" class="box-value right"></span>
-                <span id="borderBottom" class="box-value bottom"></span>
-                <span id="borderLeft" class="box-value left"></span>
-                <div class="box-layer padding-layer">
-                  <span class="box-label">padding</span>
-                  <span id="paddingTop" class="box-value top"></span>
-                  <span id="paddingRight" class="box-value right"></span>
-                  <span id="paddingBottom" class="box-value bottom"></span>
-                  <span id="paddingLeft" class="box-value left"></span>
-                  <div class="box-layer content-layer">
-                    <div id="contentSize" class="content-size"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Element Properties Card -->
-      <div id="elementPropsCard" class="info-card hidden">
-        <div class="card-header">
-          <div class="card-title">Element Properties</div>
-        </div>
-        <div class="card-content">
-          <div class="property-row">
-            <span class="prop-label" title="Click the value to edit">Width</span>
-            <input type="text" id="elemWidth" class="prop-input" data-property="width" placeholder="e.g., 200px, 50%, auto">
-          </div>
-          <div class="property-row">
-            <span class="prop-label" title="Click the value to edit">Height</span>
-            <input type="text" id="elemHeight" class="prop-input" data-property="height" placeholder="e.g., 100px, auto">
-          </div>
-          <div class="property-row">
-            <span class="prop-label" title="Click the value to edit">Display</span>
-            <input type="text" id="elemDisplay" class="prop-input" data-property="display" placeholder="e.g., block, flex, inline">
-          </div>
-          <div class="property-row">
-            <span class="prop-label" title="Click the value to edit">Position</span>
-            <input type="text" id="elemPosition" class="prop-input" data-property="position" placeholder="e.g., relative, absolute">
-          </div>
-        </div>
-      </div>
-
-      <!-- Text Properties Card -->
-      <div id="textPropsCard" class="info-card hidden">
-        <div class="card-header">
-          <div class="card-title">Text Properties</div>
-        </div>
-        <div class="card-content">
-          <div class="property-row">
-            <span class="prop-label" title="Click the value to edit">Font Family</span>
-            <input type="text" id="fontFamily" class="prop-input" data-property="font-family" placeholder="e.g., Arial, sans-serif">
-          </div>
-          <div class="property-row">
-            <span class="prop-label" title="Click the value to edit">Font Size</span>
-            <input type="text" id="fontSize" class="prop-input" data-property="font-size" placeholder="e.g., 16px, 1.2em">
-          </div>
-          <div class="property-row">
-            <span class="prop-label" title="Click the value to edit">Line Height</span>
-            <input type="text" id="lineHeight" class="prop-input" data-property="line-height" placeholder="e.g., 1.5, 24px">
-          </div>
-          <div class="property-row">
-            <span class="prop-label" title="Click the value to edit">Font Weight</span>
-            <input type="text" id="fontWeight" class="prop-input" data-property="font-weight" placeholder="e.g., 400, bold">
-          </div>
-          <div class="property-row">
-            <span class="prop-label" title="Click the value to edit">Text Color</span>
-            <div class="color-value">
-              <span id="textColorBox" class="color-box" title="Click to pick color"></span>
-              <input type="text" id="textColor" class="prop-input" data-property="color" placeholder="e.g., #333, rgb(255,0,0)">
-              <input type="color" id="textColorPicker" class="hidden-picker">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Colors Card -->
-      <div id="colorsCard" class="info-card hidden">
-        <div class="card-header">
-          <div class="card-title">Colors</div>
-        </div>
-        <div class="card-content">
-          <div class="color-row">
-            <span class="prop-label" title="Click the value to edit">Background</span>
-            <div class="color-value">
-              <span id="bgColorBox" class="color-box" title="Click to pick color"></span>
-              <input type="text" id="bgColor" class="prop-input" data-property="background-color" placeholder="e.g., #fff, transparent">
-              <input type="color" id="bgColorPicker" class="hidden-picker">
-            </div>
-          </div>
-          <!-- 渐变调色板容器 -->
-          <div id="bgGradientPickers" class="gradient-pickers hidden"></div>
-          <div class="color-row">
-            <span class="prop-label" title="Click the value to edit">Text</span>
-            <div class="color-value">
-              <span id="textColorBox2" class="color-box" title="Click to pick color"></span>
-              <input type="text" id="textColor2" class="prop-input" data-property="color" placeholder="e.g., #000, rgba(0,0,0,0.8)">
-              <input type="color" id="textColorPicker2" class="hidden-picker">
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Status Bar -->
-    <footer class="panel-footer">
-      <div id="statusMessage" class="status-message"></div>
-    </footer>
-  </div>
-
-  <script src="panel.js"></script>
+<header><div><span class="eyebrow">RUNTIME EVIDENCE</span><h1>StyleProbe <span>Agent</span></h1></div><button id="pick" class="primary">选取元素</button></header>
+<main>
+  <div id="pageInfo" class="page-info">正在连接当前标签页…</div>
+  <section class="target"><div class="section-title"><h2>当前目标</h2><button id="refresh" class="quiet">刷新</button></div><p id="selection">在页面上点选一个元素</p><div id="metrics" class="metrics"></div><div class="target-row"><input id="selector" aria-label="CSS 选择器" placeholder="或输入唯一 CSS 选择器"><button id="locate">定位</button></div></section>
+  <nav aria-label="工作流"><button data-view="task" class="active">指哪改哪</button><button data-view="design">设计验收</button><button data-view="diagnose">问题诊断</button><button data-view="extract">组件提取</button><button data-view="verify">操作验证</button></nav>
+  <section id="view-task" class="view">
+    <h2>把现场交给 Agent</h2><p class="hint">描述预期变化，导出包含布局上下文和诊断证据的任务。源码由连接的编码 Agent 修改。</p>
+    <label for="intent">你想修改什么？</label><textarea id="intent" rows="3" placeholder="让这张卡片与旁边等高，保留完整文字"></textarea>
+    <button id="task" class="primary wide">采集任务上下文</button>
+    <details open><summary>临时样式试验</summary><label for="changes">CSS 属性 JSON</label><textarea id="changes" rows="3" spellcheck="false">{"border-radius":"12px"}</textarea><div class="actions"><button id="preview">应用预览</button><button id="undo">撤销上次预览</button></div><p class="hint">预览仅修改当前页面；刷新会清除。撤销会保留原始行内值。</p></details>
+  </section>
+  <section id="view-design" class="view" hidden><h2>设计规范验收</h2><p class="hint">填写预期尺寸、样式或间距。截图可交给 Agent 与设计图进行视觉比较。</p><label for="designChecks">验收条件 JSON</label><textarea id="designChecks" rows="7" spellcheck="false">[{"kind":"rect","property":"width","equals":320,"tolerance":2},{"kind":"style","property":"font-size","equals":"16px"}]</textarea><div class="actions"><button id="assert" class="primary">检查规范</button><button id="capture">截取目标区域</button></div></section>
+  <section id="view-diagnose" class="view" hidden><h2>为什么显示异常？</h2><p class="hint">检查内容溢出、祖先裁剪、层叠因素与中心点遮挡。结果提供可复查的证据。</p><button id="diagnose" class="primary wide">分析当前元素</button><label for="other">与另一个元素测量距离</label><input id="other" placeholder="另一个唯一 CSS 选择器"><button id="measure">测量间距</button></section>
+  <section id="view-extract" class="view" hidden><h2>提取静态组件</h2><p class="hint">导出最多 60 个节点、独立作用域 CSS 和资源列表。表单值与可执行内容不会导出；不包含框架行为。</p><button id="extract" class="primary wide">提取 HTML / CSS</button><button id="downloadComponent" class="wide" disabled>下载静态组件 HTML</button></section>
+  <section id="view-verify" class="view" hidden><h2>验证真实变化</h2><div class="actions"><button id="snapshot">记录修改前快照</button><button id="diff" disabled>比较当前状态</button></div><p id="snapshotStatus" class="hint">还没有记录快照</p><label for="action">操作</label><select id="action"><option value="click">点击</option><option value="fill">填写</option><option value="scroll">滚动到可见区域</option></select><label for="value">填写内容</label><input id="value" placeholder="仅“填写”操作使用"><label for="postconditions">后置条件 JSON</label><textarea id="postconditions" rows="5" spellcheck="false">[{"kind":"visible","equals":true}]</textarea><button id="act" class="primary wide">执行并验证</button><p class="hint">最多等待 3 秒。使用 DOM 合成事件；目标页面可能要求原生用户事件。</p></section>
+  <section class="results"><div class="section-title"><h2>证据与结果</h2><button id="copy" class="quiet" disabled>复制 JSON</button></div><p id="resultSummary" class="hint">采集后在这里查看结果</p><img id="image" alt="目标元素截图" hidden><pre id="result" tabindex="0">等待操作…</pre><button id="download" disabled>下载结果 JSON</button></section>
+  <details class="connection"><summary>连接编码 Agent <span id="connectionState">未连接</span></summary><p class="hint">先启动本地 MCP bridge，再粘贴配对令牌。连接仅使用本机 127.0.0.1。</p><label for="port">本地端口</label><input id="port" type="number" min="1024" max="65535" value="19817"><label for="token">配对令牌</label><input id="token" type="password" autocomplete="off" placeholder="至少 24 个字符"><div class="actions"><button id="connect">连接</button><button id="disconnect">断开</button></div></details>
+</main><footer id="status" role="status" aria-live="polite">就绪</footer><script src="panel.js"></script>
+</body></html>

@@ -1,6 +1,6 @@
 /* Extension router. Every page operation has an explicit tab identity. */
 chrome.action.onClicked.addListener(tab => chrome.sidePanel.open({ tabId: tab.id }).catch(console.error));
-const contentFiles = ['probe.js', 'features/mobile-adapter/touch-defense.js', 'content_script.js'];
+const contentFiles = ['probe.js', 'workflows.js', 'features/mobile-adapter/touch-defense.js', 'content_script.js'];
 async function ensureProbe(tabId) {
   if (!Number.isInteger(tabId)) throw new Error('An explicit integer tabId is required.');
   const tab = await chrome.tabs.get(tabId);

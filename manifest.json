@@ -34,6 +34,7 @@
       ],
       "js": [
         "probe.js",
+        "workflows.js",
         "features/mobile-adapter/touch-defense.js",
         "content_script.js"
       ],
