@@ -1,17 +1,10 @@
 {
   "manifest_version": 3,
   "name": "StyleProbe",
-  "version": "1.0.0",
-  "description": "查看、调试并临时更改页面元素的 CSS 样式",
-  "permissions": [
-    "activeTab",
-    "scripting",
-    "storage",
-    "sidePanel"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "version": "2.0.0",
+  "description": "\u67e5\u770b\u3001\u8c03\u8bd5\u5e76\u4e34\u65f6\u66f4\u6539\u9875\u9762\u5143\u7d20\u7684 CSS \u6837\u5f0f",
+  "permissions": ["activeTab", "scripting", "storage", "sidePanel", "alarms"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "service_worker.js"
   },
@@ -30,11 +23,14 @@
     {
       "matches": ["<all_urls>"],
       "js": [
+        "probe.js",
+        "workflows.js",
         "features/mobile-adapter/touch-defense.js",
         "content_script.js"
       ],
       "run_at": "document_idle",
       "all_frames": false
     }
-  ]
+  ],
+  "minimum_chrome_version": "116"
 }

@@ -1,74 +1,338 @@
-/**
- * Service Worker - Background Script
- * 处理扩展图标点击、side panel 管理和消息转发
- */
-
-// 点击扩展图标时打开 side panel
-chrome.action.onClicked.addListener((tab) => {
-  chrome.sidePanel.open({ tabId: tab.id }).catch((err) => {
-    console.error('Failed to open side panel:', err);
+/* Extension router. Every page operation has an explicit tab identity. */
+chrome.action.onClicked.addListener((tab) =>
+  chrome.sidePanel.open({ tabId: tab.id }).catch(console.error),
+);
+const contentFiles = [
+  "probe.js",
+  "workflows.js",
+  "features/mobile-adapter/touch-defense.js",
+  "content_script.js",
+];
+async function ensureProbe(tabId) {
+  if (!Number.isInteger(tabId))
+    throw new Error("An explicit integer tabId is required.");
+  const tab = await chrome.tabs.get(tabId);
+  if (!/^(https?|file):/.test(tab.url || ""))
+    throw new Error("This browser page cannot be inspected.");
+  try {
+    const pong = await chrome.tabs.sendMessage(tabId, {
+      type: "probe",
+      method: "selected",
+    });
+    if (!pong?.ok) throw new Error("Probe not ready");
+  } catch {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: contentFiles,
+    });
+  }
+}
+async function dispatch(method, args = {}) {
+  if (method === "list_tabs") {
+    const tabs = await chrome.tabs.query({});
+    return tabs
+      .filter((t) => /^(https?|file):/.test(t.url || ""))
+      .map((t) => ({
+        tabId: t.id,
+        windowId: t.windowId,
+        title: t.title,
+        url: t.url,
+        active: t.active,
+      }));
+  }
+  if (method === "capture") return capture(args);
+  const { tabId, ...parameters } = args;
+  await ensureProbe(tabId);
+  if (method === "diff") {
+    const saved =
+      (await chrome.storage.session.get(`snapshots:${tabId}`))[
+        `snapshots:${tabId}`
+      ] || [];
+    parameters.baseline = saved.find(
+      (s) => s.snapshotId === parameters.snapshotId,
+    );
+  }
+  const response = await chrome.tabs.sendMessage(tabId, {
+    type: "probe",
+    method,
+    args: parameters,
   });
-});
-
-// 监听来自 content script 和 panel 的消息并转发
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // 转发消息到目标
-  if (request.action === 'forwardToPanel') {
-    // 从 content script 转发到 panel
-    // 注意：直接从 background 发送到 panel 需要特殊处理
-    // 这里我们将数据存储在 storage 中，panel 通过轮询获取
-    chrome.storage.local.set({ 
-      latestElementData: request.data,
-      timestamp: Date.now()
-    });
-    sendResponse({ success: true });
-  } else if (request.action === 'forwardToContent') {
-    // 从 panel 转发到 content script
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, request.data, (response) => {
-          sendResponse(response);
-        });
-      }
-    });
-    return true; // 保持消息通道开放
-  } else if (request.action === 'injectContentScript') {
-    // 确保 content script 已注入
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-      if (tabs[0]) {
-        try {
-          await chrome.scripting.executeScript({
-            target: { tabId: tabs[0].id },
-            files: ['content_script.js']
-          });
-          sendResponse({ success: true });
-        } catch (error) {
-          console.error('Failed to inject content script:', error);
-          sendResponse({ success: false, error: error.message });
-        }
-      }
-    });
+  if (!response?.ok)
+    throw Object.assign(
+      new Error(response?.error?.message || "No probe response"),
+      { code: response?.error?.code },
+    );
+  if (method === "snapshot") {
+    const key = `snapshots:${tabId}`;
+    const saved = (await chrome.storage.session.get(key))[key] || [];
+    saved.push(response.result);
+    await chrome.storage.session.set({ [key]: saved.slice(-30) });
+  }
+  return response.result;
+}
+chrome.runtime.onMessage.addListener((request, sender, respond) => {
+  if (request.type === "probe") return;
+  if (request.action === "forwardToPanel") {
+    if (sender.tab?.id == null) return;
+    chrome.storage.session
+      .set({
+        [`selection:${sender.tab.id}`]: {
+          data: request.data,
+          timestamp: Date.now(),
+          documentId: sender.documentId,
+        },
+      })
+      .then(() => respond({ success: true }));
     return true;
   }
-  
-  return true; // 保持消息通道开放以支持异步响应
-});
-
-// 监听标签页更新，清理状态
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete') {
-    // 页面加载完成，清理旧的选中状态
-    chrome.storage.local.remove(['latestElementData']);
+  if (request.type === "agent") {
+    dispatch(request.method, request.args).then(
+      (result) => respond({ ok: true, result }),
+      (error) =>
+        respond({
+          ok: false,
+          error: {
+            code: error.code || "ROUTING_ERROR",
+            message: error.message,
+          },
+        }),
+    );
+    return true;
   }
 });
-
-// 安装时初始化
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('StyleProbe extension installed12');
-  
-  // 设置默认配置
-  chrome.storage.local.set({
-    highlightColor: '#4A90E2',
-    selectedColor: '#FF6B35'
-  });
+chrome.tabs.onRemoved.addListener((tabId) =>
+  chrome.storage.session.remove([`selection:${tabId}`, `snapshots:${tabId}`]),
+);
+chrome.tabs.onUpdated.addListener((tabId, info) => {
+  if (info.status === "loading")
+    chrome.storage.session.remove(`selection:${tabId}`);
 });
+
+const captures = new Set();
+async function capture(args) {
+  if (captures.has(args.tabId))
+    throw new Error("A capture is already running for this tab.");
+  captures.add(args.tabId);
+  try {
+    return await captureImpl(args);
+  } finally {
+    captures.delete(args.tabId);
+  }
+}
+async function captureImpl({ tabId, target }) {
+  const tab = await chrome.tabs.get(tabId);
+  const [active] = await chrome.tabs.query({
+    active: true,
+    windowId: tab.windowId,
+  });
+  if (active?.id !== tabId)
+    throw new Error("Activate the requested tab before capturing it.");
+  const data = target
+    ? await dispatch("inspect", { tabId, target, depth: 0, maxNodes: 1 })
+    : await dispatch("selected", { tabId });
+  const overlayCSS =
+    ".css-inspector-overlay,.css-inspector-spacing-label,.css-inspector-spacing-line{display:none!important;transition:none!important}";
+  let url;
+  await chrome.scripting.insertCSS({ target: { tabId }, css: overlayCSS });
+  try {
+    // insertCSS completion does not guarantee a composited frame. Wait for paint
+    // before asking Chrome for pixels; otherwise Linux may capture the old tint.
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () =>
+        new Promise((resolve, reject) => {
+          const timer = setTimeout(
+            () =>
+              reject(new Error("Activate the page to allow a capture frame.")),
+            1500,
+          );
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              clearTimeout(timer);
+              resolve();
+            }),
+          );
+        }),
+    });
+    url = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" });
+  } finally {
+    await chrome.scripting
+      .removeCSS({ target: { tabId }, css: overlayCSS })
+      .catch(() => {});
+  }
+  const [nowActive] = await chrome.tabs.query({
+    active: true,
+    windowId: tab.windowId,
+  });
+  const current = await dispatch("selected", { tabId });
+  if (
+    nowActive?.id !== tabId ||
+    current.page.documentId !== data.page.documentId
+  )
+    throw new Error("Tab changed during capture; retry.");
+  const bitmap = await createImageBitmap(await (await fetch(url)).blob());
+  const scaleX = bitmap.width / data.page.viewport.width,
+    scaleY = bitmap.height / data.page.viewport.height;
+  const r = target
+    ? data.element.rect
+    : {
+        x: 0,
+        y: 0,
+        width: data.page.viewport.width,
+        height: data.page.viewport.height,
+      };
+  const x = Math.max(0, r.x),
+    y = Math.max(0, r.y),
+    width = Math.min(r.x + r.width, data.page.viewport.width) - x,
+    height = Math.min(r.y + r.height, data.page.viewport.height) - y;
+  if (width <= 0 || height <= 0) {
+    bitmap.close();
+    throw new Error(
+      "Element is outside the viewport. Scroll it into view first.",
+    );
+  }
+  const canvas = new OffscreenCanvas(
+    Math.max(1, Math.round(width * scaleX)),
+    Math.max(1, Math.round(height * scaleY)),
+  );
+  canvas
+    .getContext("2d")
+    .drawImage(
+      bitmap,
+      x * scaleX,
+      y * scaleY,
+      width * scaleX,
+      height * scaleY,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+  bitmap.close();
+  const bytes = new Uint8Array(
+    await (await canvas.convertToBlob({ type: "image/png" })).arrayBuffer(),
+  );
+  if (bytes.length > 7 * 1024 * 1024)
+    throw new Error("Capture too large. Capture a smaller region.");
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 8192)
+    binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  return {
+    image: btoa(binary),
+    mimeType: "image/png",
+    page: data.page,
+    bounds: { x, y, width, height },
+    clipped: width !== r.width || height !== r.height,
+  };
+}
+let socket,
+  heartbeat,
+  connectionState = "disconnected";
+async function connectBridge() {
+  const { bridgeConfig: config } =
+    await chrome.storage.local.get("bridgeConfig");
+  if (
+    !config?.enabled ||
+    socket?.readyState === WebSocket.OPEN ||
+    socket?.readyState === WebSocket.CONNECTING
+  )
+    return;
+  connectionState = "connecting";
+  const ws = new WebSocket(`ws://127.0.0.1:${config.port}/probe`);
+  socket = ws;
+  ws.onopen = () =>
+    ws.send(JSON.stringify({ type: "hello", token: config.token }));
+  ws.onmessage = async ({ data }) => {
+    let request;
+    try {
+      request = JSON.parse(data);
+    } catch {
+      return;
+    }
+    if (request.type === "ready") {
+      connectionState = "connected";
+      clearInterval(heartbeat);
+      heartbeat = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN)
+          ws.send(JSON.stringify({ type: "ping" }));
+      }, 20000);
+      return;
+    }
+    if (!request.id) return;
+    try {
+      const result =
+        request.method === "capture"
+          ? await capture(request.args)
+          : await dispatch(request.method, request.args);
+      if (ws.readyState === WebSocket.OPEN)
+        ws.send(JSON.stringify({ id: request.id, ok: true, result }));
+    } catch (error) {
+      if (ws.readyState === WebSocket.OPEN)
+        ws.send(
+          JSON.stringify({
+            id: request.id,
+            ok: false,
+            error: {
+              code: error.code || "EXTENSION_ERROR",
+              message: error.message,
+            },
+          }),
+        );
+    }
+  };
+  ws.onclose = () => {
+    if (socket !== ws) return;
+    clearInterval(heartbeat);
+    connectionState = "disconnected";
+    socket = null;
+    chrome.alarms.create("bridge-reconnect", { delayInMinutes: 1 });
+  };
+  ws.onerror = () => {
+    connectionState = "connection failed";
+  };
+}
+chrome.runtime.onMessage.addListener((request, sender, respond) => {
+  if (request.type !== "bridge") return;
+  (async () => {
+    if (request.action === "connect") {
+      const port = Number(request.port),
+        token = request.token;
+      if (
+        !Number.isInteger(port) ||
+        port < 1024 ||
+        port > 65535 ||
+        typeof token !== "string" ||
+        token.length < 24
+      )
+        throw new Error(
+          "Use a port from 1024–65535 and the pairing token (at least 24 characters).",
+        );
+      await chrome.storage.local.set({
+        bridgeConfig: { port, token, enabled: true },
+      });
+      const old = socket;
+      socket = null;
+      old?.close();
+      clearInterval(heartbeat);
+      await connectBridge();
+    } else if (request.action === "disconnect") {
+      await chrome.storage.local.remove("bridgeConfig");
+      await chrome.alarms.clear("bridge-reconnect");
+      const old = socket;
+      socket = null;
+      old?.close();
+      clearInterval(heartbeat);
+      connectionState = "disconnected";
+    }
+    return { state: connectionState };
+  })().then(
+    (result) => respond({ ok: true, result }),
+    (error) => respond({ ok: false, error: { message: error.message } }),
+  );
+  return true;
+});
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === "bridge-reconnect") connectBridge();
+});
+chrome.runtime.onStartup.addListener(connectBridge);
+connectBridge();

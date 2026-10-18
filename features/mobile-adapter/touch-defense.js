@@ -12,7 +12,7 @@
  */
 
 (function () {
-  'use strict';
+  "use strict";
 
   // 防止重复注入
   if (window.__TOUCH_DEFENSE_INJECTED__) return;
@@ -22,7 +22,7 @@
   //  常量 & 配置
   // =====================================================================
 
-  const DEFENSE_STYLE_ID = 'css-inspector-touch-defense';
+  const DEFENSE_STYLE_ID = "css-inspector-touch-defense";
 
   /**
    * CSS 防御样式表
@@ -97,7 +97,7 @@
     body.css-inspector-active picture,
     body.css-inspector-active video,
     body.css-inspector-active canvas {
-      pointer-events: none !important;
+      /* Keep media hit-testable so the probe can select it. */
     }
   `;
 
@@ -113,7 +113,7 @@
     // 幂等：如果已经存在则跳过
     if (document.getElementById(DEFENSE_STYLE_ID)) return;
 
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.id = DEFENSE_STYLE_ID;
     style.textContent = DEFENSE_CSS;
 
@@ -187,7 +187,7 @@
    */
   function blockContextMenu(e) {
     // 只在检查模式激活时阻止（通过检查 body class）
-    if (!document.body.classList.contains('css-inspector-active')) return;
+    if (!document.body.classList.contains("css-inspector-active")) return;
 
     e.preventDefault();
     e.stopPropagation();
@@ -203,7 +203,7 @@
    * 在捕获阶段拦截它，就能从源头阻止文本选择链路启动。
    */
   function blockSelectStart(e) {
-    if (!document.body.classList.contains('css-inspector-active')) return;
+    if (!document.body.classList.contains("css-inspector-active")) return;
 
     e.preventDefault();
     e.stopPropagation();
@@ -217,11 +217,11 @@
    * 阻止它可以防止图片被拖拽出页面。
    */
   function blockDragStart(e) {
-    if (!document.body.classList.contains('css-inspector-active')) return;
+    if (!document.body.classList.contains("css-inspector-active")) return;
 
     // 只对媒体元素阻止拖拽
     const tag = e.target.tagName;
-    if (tag === 'IMG' || tag === 'SVG' || tag === 'VIDEO' || tag === 'CANVAS') {
+    if (tag === "IMG" || tag === "SVG" || tag === "VIDEO" || tag === "CANVAS") {
       e.preventDefault();
       e.stopPropagation();
     }
@@ -232,21 +232,21 @@
    */
   function attachDefenseListeners() {
     // ---- contextmenu：阻止长按弹出系统菜单 ----
-    addDefenseListener(document, 'contextmenu', blockContextMenu, {
-      capture: true,     // 捕获阶段拦截，优先于任何子元素
-      passive: false     // 必须：允许 preventDefault() 生效
+    addDefenseListener(document, "contextmenu", blockContextMenu, {
+      capture: true, // 捕获阶段拦截，优先于任何子元素
+      passive: false, // 必须：允许 preventDefault() 生效
     });
 
     // ---- selectstart：阻止长按触发文本选择 ----
-    addDefenseListener(document, 'selectstart', blockSelectStart, {
+    addDefenseListener(document, "selectstart", blockSelectStart, {
       capture: true,
-      passive: false
+      passive: false,
     });
 
     // ---- dragstart：阻止图片拖拽（补充） ----
-    addDefenseListener(document, 'dragstart', blockDragStart, {
+    addDefenseListener(document, "dragstart", blockDragStart, {
       capture: true,
-      passive: false
+      passive: false,
     });
 
     /**
@@ -288,7 +288,7 @@
    * 同时在 <body> 上添加标记 class，供 CSS 和 JS 判断状态。
    */
   function activate() {
-    document.body.classList.add('css-inspector-active');
+    document.body.classList.add("css-inspector-active");
     injectDefenseStyles();
     attachDefenseListeners();
   }
@@ -298,7 +298,7 @@
    * 移除所有注入的样式和监听器，还原页面原始行为。
    */
   function deactivate() {
-    document.body.classList.remove('css-inspector-active');
+    document.body.classList.remove("css-inspector-active");
     removeDefenseStyles();
     detachDefenseListeners();
   }
@@ -318,7 +318,6 @@
   window.__TouchDefense__ = {
     activate,
     deactivate,
-    destroy
+    destroy,
   };
-
 })();
