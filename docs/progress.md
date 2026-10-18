@@ -50,3 +50,7 @@
 | Action verification   | act + snapshot/diff                       | async click/fill success, timeout, invalid check before mutation, scroll, unverified result; refreshed-page diff |
 | Agent connectivity    | stdio SDK + authenticated WS + SW routing | official client round-trip; auth/timeout/disconnect tests; real extension connection                             |
 | Usable delivery       | docs + standalone extension files + CI    | syntax, formatting, browser/Node suite; stage commits pushed separately                                          |
+
+### External CI portability correction
+
+The first public CI run exposed local npm registry URLs in the generated lockfile. Regenerated the lockfile against registry.npmjs.org with isolated npm configuration; package versions remain unchanged. Cancelled the two obsolete runs and reran CI on the corrected commit.
