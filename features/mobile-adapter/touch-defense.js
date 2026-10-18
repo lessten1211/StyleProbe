@@ -97,7 +97,7 @@
     body.css-inspector-active picture,
     body.css-inspector-active video,
     body.css-inspector-active canvas {
-      pointer-events: none !important;
+      /* Keep media hit-testable so the probe can select it. */
     }
   `;
 

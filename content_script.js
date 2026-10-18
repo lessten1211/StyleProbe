@@ -619,6 +619,7 @@
 
     // 选中元素
     state.selectedElement = target;
+    globalThis.__StyleProbe?.select(target);
 
     // 创建或更新选中覆盖层
     if (!state.selectedOverlay) {
@@ -715,11 +716,10 @@
       }
 
       // 应用样式
-      if (value === null || value === '') {
-        element.style.removeProperty(property);
-      } else {
-        element.style.setProperty(property, value, 'important');
-      }
+      const preview = globalThis.__StyleProbe.methods.preview({
+        target: { ref: globalThis.__StyleProbe.select(element).ref },
+        changes: { [property]: value === '' ? null : value }
+      });
 
       // 记录修改
       if (!state.modifications.has(element)) {
@@ -756,14 +756,12 @@
 
   // === 清除所有修改 ===
   function clearAllChanges() {
-    state.modifications.forEach((mod, element) => {
-      mod.changes.forEach(change => {
-        element.style.removeProperty(change.property);
-      });
-    });
-    
+    try {
+      while (true) globalThis.__StyleProbe.methods.undo();
+    } catch (error) {
+      if (error.code !== 'NO_TRANSACTION') return { success: false, error: error.message };
+    }
     state.modifications.clear();
-    
     return { success: true };
   }
 

@@ -59,7 +59,7 @@
       try {
         await chrome.scripting.executeScript({
           target: { tabId: tabId },
-          files: ['content_script.js']
+          files: ['probe.js', 'features/mobile-adapter/touch-defense.js', 'content_script.js']
         });
         // 等待一小段时间让 content script 初始化
         await new Promise(resolve => setTimeout(resolve, 200));
@@ -200,7 +200,7 @@
     }
 
     // Colors
-    const bgColor = styles.backgroundColor || 'transparent';
+    const bgColor = styles['background-color'] || 'transparent';
     const bgColorHex = rgbToHex(bgColor) || bgColor;
     elements.bgColor.value = bgColor;
     elements.bgColorBox.style.backgroundColor = bgColor;
@@ -487,7 +487,17 @@
     let lastTimestamp = 0;
     
     setInterval(async () => {
-      const result = await chrome.storage.local.get(['latestElementData', 'timestamp']);
+      const tab = await getActiveTab();
+      if (!tab) return;
+      const key = `selection:${tab.id}`;
+      const stored = (await chrome.storage.session.get(key))[key];
+      const result = { latestElementData: stored?.data, timestamp: stored?.timestamp };
+      if (state.activeTab !== tab.id) {
+        state.activeTab = tab.id; state.currentElement = null; state.isPicking = false; lastTimestamp = 0;
+        elements.emptyState.classList.remove('hidden');
+        for (const card of document.querySelectorAll('.info-card')) card.classList.add('hidden');
+        elements.pickButton.textContent = 'Start Picking';
+      }
       
       if (result.latestElementData && result.timestamp > lastTimestamp) {
         lastTimestamp = result.timestamp;

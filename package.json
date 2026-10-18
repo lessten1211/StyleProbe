@@ -1,0 +1,15 @@
+{
+  "name": "styleprobe-agent",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "bridge": "node bridge/server.js",
+    "test": "node --test tests/*.test.js",
+    "test:browser": "playwright test",
+    "check": "node --check probe.js && node --check panel.js && node --check service_worker.js && node --check content_script.js"
+  },
+  "dependencies": { "@modelcontextprotocol/sdk": "^1.0.0", "ws": "^8.18.0" },
+  "devDependencies": { "@playwright/test": "^1.50.0" }
+}
