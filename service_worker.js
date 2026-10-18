@@ -108,7 +108,18 @@ chrome.tabs.onUpdated.addListener((tabId, info) => {
     chrome.storage.session.remove(`selection:${tabId}`);
 });
 
-async function capture({ tabId, target }) {
+const captures = new Set();
+async function capture(args) {
+  if (captures.has(args.tabId))
+    throw new Error("A capture is already running for this tab.");
+  captures.add(args.tabId);
+  try {
+    return await captureImpl(args);
+  } finally {
+    captures.delete(args.tabId);
+  }
+}
+async function captureImpl({ tabId, target }) {
   const tab = await chrome.tabs.get(tabId);
   const [active] = await chrome.tabs.query({
     active: true,
@@ -120,10 +131,29 @@ async function capture({ tabId, target }) {
     ? await dispatch("inspect", { tabId, target, depth: 0, maxNodes: 1 })
     : await dispatch("selected", { tabId });
   const overlayCSS =
-    ".css-inspector-overlay,.css-inspector-spacing-label,.css-inspector-spacing-line{visibility:hidden!important}";
+    ".css-inspector-overlay,.css-inspector-spacing-label,.css-inspector-spacing-line{display:none!important;transition:none!important}";
   let url;
   await chrome.scripting.insertCSS({ target: { tabId }, css: overlayCSS });
   try {
+    // insertCSS completion does not guarantee a composited frame. Wait for paint
+    // before asking Chrome for pixels; otherwise Linux may capture the old tint.
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () =>
+        new Promise((resolve, reject) => {
+          const timer = setTimeout(
+            () =>
+              reject(new Error("Activate the page to allow a capture frame.")),
+            1500,
+          );
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              clearTimeout(timer);
+              resolve();
+            }),
+          );
+        }),
+    });
     url = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" });
   } finally {
     await chrome.scripting

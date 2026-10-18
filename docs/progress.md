@@ -54,3 +54,7 @@
 ### External CI portability correction
 
 The first public CI run exposed local npm registry URLs in the generated lockfile. Regenerated the lockfile against registry.npmjs.org with isolated npm configuration; package versions remain unchanged. Cancelled the two obsolete runs and reran CI on the corrected commit.
+
+### Cross-platform screenshot correction
+
+Linux CI exposed a real overlay-capture race: visibility hiding interacted with the overlay's 150ms transition. Captures now immediately remove overlays from rendering, disable transitions, await two paint frames and serialize concurrent capture requests per tab. The original exact-color screenshot assertion remains unchanged and passes locally after the correction.
