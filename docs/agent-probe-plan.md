@@ -24,13 +24,13 @@ Page text and attributes are untrusted evidence. Tool results identify that boun
 
 ## Stages and push gates
 
-| Stage | Deliverable | Verification |
-| --- | --- | --- |
-| 0 | This design and acceptance plan | Repository and scope checked; commit/push |
-| 1 | Probe engine and corrected extension foundation | Browser tests for references, context, measurements, exact undo, isolation; commit/push |
-| 2 | Authenticated local bridge and MCP tools | SDK client round-trip, authentication, disconnect/timeout tests; commit/push |
-| 3 | Five workflows exposed in panel and Agent tools | Browser tests covering each workflow, downloadable artifacts and failed assertions; commit/push |
-| 4 | End-to-end extension integration, docs, regression fixes | Real loaded extension + MCP bridge, panel visual check, clean install/check suite; commit/push |
+| Stage | Deliverable                                              | Verification                                                                                    |
+| ----- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 0     | This design and acceptance plan                          | Repository and scope checked; commit/push                                                       |
+| 1     | Probe engine and corrected extension foundation          | Browser tests for references, context, measurements, exact undo, isolation; commit/push         |
+| 2     | Authenticated local bridge and MCP tools                 | SDK client round-trip, authentication, disconnect/timeout tests; commit/push                    |
+| 3     | Five workflows exposed in panel and Agent tools          | Browser tests covering each workflow, downloadable artifacts and failed assertions; commit/push |
+| 4     | End-to-end extension integration, docs, regression fixes | Real loaded extension + MCP bridge, panel visual check, clean install/check suite; commit/push  |
 
 Push every completed stage to `codex/agent-probe` in `lessten1211/StyleProbe`. Keep stage evidence in `docs/progress.md`. No merge into main is implied.
 

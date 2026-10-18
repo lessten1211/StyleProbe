@@ -1,23 +1,168 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>StyleProbe · Agent Probe</title><link rel="stylesheet" href="panel.css"></head>
-<body>
-<header><div><span class="eyebrow">RUNTIME EVIDENCE</span><h1>StyleProbe <span>Agent</span></h1></div><button id="pick" class="primary">选取元素</button></header>
-<main>
-  <div id="pageInfo" class="page-info">正在连接当前标签页…</div>
-  <section class="target"><div class="section-title"><h2>当前目标</h2><button id="refresh" class="quiet">刷新</button></div><p id="selection">在页面上点选一个元素</p><div id="metrics" class="metrics"></div><div class="target-row"><input id="selector" aria-label="CSS 选择器" placeholder="或输入唯一 CSS 选择器"><button id="locate">定位</button></div></section>
-  <nav aria-label="工作流"><button data-view="task" class="active">指哪改哪</button><button data-view="design">设计验收</button><button data-view="diagnose">问题诊断</button><button data-view="extract">组件提取</button><button data-view="verify">操作验证</button></nav>
-  <section id="view-task" class="view">
-    <h2>把现场交给 Agent</h2><p class="hint">描述预期变化，导出包含布局上下文和诊断证据的任务。源码由连接的编码 Agent 修改。</p>
-    <label for="intent">你想修改什么？</label><textarea id="intent" rows="3" placeholder="让这张卡片与旁边等高，保留完整文字"></textarea>
-    <button id="task" class="primary wide">采集任务上下文</button>
-    <details open><summary>临时样式试验</summary><label for="changes">CSS 属性 JSON</label><textarea id="changes" rows="3" spellcheck="false">{"border-radius":"12px"}</textarea><div class="actions"><button id="preview">应用预览</button><button id="undo">撤销上次预览</button></div><p class="hint">预览仅修改当前页面；刷新会清除。撤销会保留原始行内值。</p></details>
-  </section>
-  <section id="view-design" class="view" hidden><h2>设计规范验收</h2><p class="hint">填写预期尺寸、样式或间距。截图可交给 Agent 与设计图进行视觉比较。</p><label for="designChecks">验收条件 JSON</label><textarea id="designChecks" rows="7" spellcheck="false">[{"kind":"rect","property":"width","equals":320,"tolerance":2},{"kind":"style","property":"font-size","equals":"16px"}]</textarea><div class="actions"><button id="assert" class="primary">检查规范</button><button id="capture">截取目标区域</button></div></section>
-  <section id="view-diagnose" class="view" hidden><h2>为什么显示异常？</h2><p class="hint">检查内容溢出、祖先裁剪、层叠因素与中心点遮挡。结果提供可复查的证据。</p><button id="diagnose" class="primary wide">分析当前元素</button><label for="other">与另一个元素测量距离</label><input id="other" placeholder="另一个唯一 CSS 选择器"><button id="measure">测量间距</button></section>
-  <section id="view-extract" class="view" hidden><h2>提取静态组件</h2><p class="hint">导出最多 60 个节点、独立作用域 CSS 和资源列表。表单值与可执行内容不会导出；不包含框架行为。</p><button id="extract" class="primary wide">提取 HTML / CSS</button><button id="downloadComponent" class="wide" disabled>下载静态组件 HTML</button></section>
-  <section id="view-verify" class="view" hidden><h2>验证真实变化</h2><div class="actions"><button id="snapshot">记录修改前快照</button><button id="diff" disabled>比较当前状态</button></div><p id="snapshotStatus" class="hint">还没有记录快照</p><label for="action">操作</label><select id="action"><option value="click">点击</option><option value="fill">填写</option><option value="scroll">滚动到可见区域</option></select><label for="value">填写内容</label><input id="value" placeholder="仅“填写”操作使用"><label for="postconditions">后置条件 JSON</label><textarea id="postconditions" rows="5" spellcheck="false">[{"kind":"visible","equals":true}]</textarea><button id="act" class="primary wide">执行并验证</button><p class="hint">最多等待 3 秒。使用 DOM 合成事件；目标页面可能要求原生用户事件。</p></section>
-  <section class="results"><div class="section-title"><h2>证据与结果</h2><button id="copy" class="quiet" disabled>复制 JSON</button></div><p id="resultSummary" class="hint">采集后在这里查看结果</p><img id="image" alt="目标元素截图" hidden><pre id="result" tabindex="0">等待操作…</pre><button id="download" disabled>下载结果 JSON</button></section>
-  <details class="connection"><summary>连接编码 Agent <span id="connectionState">未连接</span></summary><p class="hint">先启动本地 MCP bridge，再粘贴配对令牌。连接仅使用本机 127.0.0.1。</p><label for="port">本地端口</label><input id="port" type="number" min="1024" max="65535" value="19817"><label for="token">配对令牌</label><input id="token" type="password" autocomplete="off" placeholder="至少 24 个字符"><div class="actions"><button id="connect">连接</button><button id="disconnect">断开</button></div></details>
-</main><footer id="status" role="status" aria-live="polite">就绪</footer><script src="panel.js"></script>
-</body></html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>StyleProbe · Agent Probe</title>
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <span class="eyebrow">RUNTIME EVIDENCE</span>
+        <h1>StyleProbe <span>Agent</span></h1>
+      </div>
+      <button id="pick" class="primary">选取元素</button>
+    </header>
+    <main>
+      <div id="pageInfo" class="page-info">正在连接当前标签页…</div>
+      <section class="target">
+        <div class="section-title">
+          <h2>当前目标</h2>
+          <button id="refresh" class="quiet">刷新</button>
+        </div>
+        <p id="selection">在页面上点选一个元素</p>
+        <div id="metrics" class="metrics"></div>
+        <div class="target-row">
+          <input
+            id="selector"
+            aria-label="CSS 选择器"
+            placeholder="或输入唯一 CSS 选择器"
+          /><button id="locate">定位</button>
+        </div>
+      </section>
+      <nav aria-label="工作流">
+        <button data-view="task" class="active">指哪改哪</button
+        ><button data-view="design">设计验收</button
+        ><button data-view="diagnose">问题诊断</button
+        ><button data-view="extract">组件提取</button
+        ><button data-view="verify">操作验证</button>
+      </nav>
+      <section id="view-task" class="view">
+        <h2>把现场交给 Agent</h2>
+        <p class="hint">
+          描述预期变化，导出包含布局上下文和诊断证据的任务。源码由连接的编码
+          Agent 修改。
+        </p>
+        <label for="intent">你想修改什么？</label
+        ><textarea
+          id="intent"
+          rows="3"
+          placeholder="让这张卡片与旁边等高，保留完整文字"
+        ></textarea>
+        <button id="task" class="primary wide">采集任务上下文</button>
+        <details open>
+          <summary>临时样式试验</summary>
+          <label for="changes">CSS 属性 JSON</label
+          ><textarea id="changes" rows="3" spellcheck="false">
+{"border-radius":"12px"}</textarea>
+          <div class="actions">
+            <button id="preview">应用预览</button
+            ><button id="undo">撤销上次预览</button>
+          </div>
+          <p class="hint">
+            预览仅修改当前页面；刷新会清除。撤销会保留原始行内值。
+          </p>
+        </details>
+      </section>
+      <section id="view-design" class="view" hidden>
+        <h2>设计规范验收</h2>
+        <p class="hint">
+          填写预期尺寸、样式或间距。截图可交给 Agent 与设计图进行视觉比较。
+        </p>
+        <label for="designChecks">验收条件 JSON</label
+        ><textarea id="designChecks" rows="7" spellcheck="false">
+[{"kind":"rect","property":"width","equals":320,"tolerance":2},{"kind":"style","property":"font-size","equals":"16px"}]</textarea>
+        <div class="actions">
+          <button id="assert" class="primary">检查规范</button
+          ><button id="capture">截取目标区域</button>
+        </div>
+      </section>
+      <section id="view-diagnose" class="view" hidden>
+        <h2>为什么显示异常？</h2>
+        <p class="hint">
+          检查内容溢出、祖先裁剪、层叠因素与中心点遮挡。结果提供可复查的证据。
+        </p>
+        <button id="diagnose" class="primary wide">分析当前元素</button
+        ><label for="other">与另一个元素测量距离</label
+        ><input id="other" placeholder="另一个唯一 CSS 选择器" /><button
+          id="measure"
+        >
+          测量间距
+        </button>
+      </section>
+      <section id="view-extract" class="view" hidden>
+        <h2>提取静态组件</h2>
+        <p class="hint">
+          导出最多 60 个节点、独立作用域 CSS
+          和资源列表。表单值与可执行内容不会导出；不包含框架行为。
+        </p>
+        <button id="extract" class="primary wide">提取 HTML / CSS</button
+        ><button id="downloadComponent" class="wide" disabled>
+          下载静态组件 HTML
+        </button>
+      </section>
+      <section id="view-verify" class="view" hidden>
+        <h2>验证真实变化</h2>
+        <div class="actions">
+          <button id="snapshot">记录修改前快照</button
+          ><button id="diff" disabled>比较当前状态</button>
+        </div>
+        <p id="snapshotStatus" class="hint">还没有记录快照</p>
+        <label for="action">操作</label
+        ><select id="action">
+          <option value="click">点击</option>
+          <option value="fill">填写</option>
+          <option value="scroll">滚动到可见区域</option></select
+        ><label for="value">填写内容</label
+        ><input id="value" placeholder="仅“填写”操作使用" /><label
+          for="postconditions"
+          >后置条件 JSON</label
+        ><textarea id="postconditions" rows="5" spellcheck="false">
+[{"kind":"visible","equals":true}]</textarea
+        ><button id="act" class="primary wide">执行并验证</button>
+        <p class="hint">
+          最多等待 3 秒。使用 DOM 合成事件；目标页面可能要求原生用户事件。
+        </p>
+      </section>
+      <section class="results">
+        <div class="section-title">
+          <h2>证据与结果</h2>
+          <button id="copy" class="quiet" disabled>复制 JSON</button>
+        </div>
+        <p id="resultSummary" class="hint">采集后在这里查看结果</p>
+        <img id="image" alt="目标元素截图" hidden />
+        <pre id="result" tabindex="0">等待操作…</pre>
+        <button id="download" disabled>下载结果 JSON</button>
+      </section>
+      <details class="connection">
+        <summary>
+          连接编码 Agent <span id="connectionState">未连接</span>
+        </summary>
+        <p class="hint">
+          先启动本地 MCP bridge，再粘贴配对令牌。连接仅使用本机 127.0.0.1。
+        </p>
+        <label for="port">本地端口</label
+        ><input
+          id="port"
+          type="number"
+          min="1024"
+          max="65535"
+          value="19817"
+        /><label for="token">配对令牌</label
+        ><input
+          id="token"
+          type="password"
+          autocomplete="off"
+          placeholder="至少 24 个字符"
+        />
+        <div class="actions">
+          <button id="connect">连接</button
+          ><button id="disconnect">断开</button>
+        </div>
+      </details>
+    </main>
+    <footer id="status" role="status" aria-live="polite">就绪</footer>
+    <script src="panel.js"></script>
+  </body>
+</html>

@@ -3,16 +3,8 @@
   "name": "StyleProbe",
   "version": "2.0.0",
   "description": "\u67e5\u770b\u3001\u8c03\u8bd5\u5e76\u4e34\u65f6\u66f4\u6539\u9875\u9762\u5143\u7d20\u7684 CSS \u6837\u5f0f",
-  "permissions": [
-    "activeTab",
-    "scripting",
-    "storage",
-    "sidePanel",
-    "alarms"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "permissions": ["activeTab", "scripting", "storage", "sidePanel", "alarms"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "service_worker.js"
   },
@@ -29,9 +21,7 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "<all_urls>"
-      ],
+      "matches": ["<all_urls>"],
       "js": [
         "probe.js",
         "workflows.js",
